@@ -41,6 +41,23 @@ export const actions = {
       throw err
     }
   },
+  async registerUserWithPhone({
+    commit
+  }, authData) {
+    let user = null
+
+    try {
+      await this.$fire.auth.signInWithPhoneNumber(authData.phone, authData.verifier)
+      user = this.$fire.auth.currentUser
+      await user.updateProfile({
+        displayName: authData.username
+      })
+
+    } catch (err) {
+      if (user) user.delete()
+      throw err
+    }
+  },
   async loginUserWithEmail({
     commit
   }, authData) {

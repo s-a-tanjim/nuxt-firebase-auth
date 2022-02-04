@@ -9,7 +9,7 @@
             {{ errorMsg }}
           </div>
 
-          <form method="post" @submit.prevent="register">
+          <form method="post" @submit.prevent="registerClicked">
             <div class="field">
               <label class="label">Username</label>
               <div class="control">
@@ -30,6 +30,18 @@
                   class="input"
                   name="email"
                   v-model="email"
+                  required
+                />
+              </div>
+            </div>
+            <div class="field">
+              <label class="label">Mobile Phone</label>
+              <div class="control">
+                <input
+                  type="text"
+                  class="input"
+                  name="phone"
+                  v-model="phone"
                   required
                 />
               </div>
@@ -69,6 +81,7 @@ export default {
     return {
       username: "",
       email: "",
+      phone: "",
       password: "",
       errorMsg: "",
       isLoading: false,
@@ -76,7 +89,24 @@ export default {
   },
 
   methods: {
-    async register() {
+    registerClicked() {
+      if (this.email && !this.phone) {
+        this.registerWithEmail();
+      } else if (this.phone) {
+        //Phone login
+        window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(
+          "sign-in-button",
+          {
+            size: "invisible",
+            callback: (response) => {
+              // reCAPTCHA solved, allow signInWithPhoneNumber.
+              registerWithPhone();
+            },
+          }
+        );
+      }
+    },
+    async registerWithEmail() {
       this.isLoading = true;
       this.errorMsg = "";
       try {
@@ -95,7 +125,31 @@ export default {
         else
           this.$store.commit("handleFirebaseError", {
             error: err,
-            from: "register : register()",
+            from: "register : registerWithEmail()",
+          });
+      }
+    },
+    async registerWithPhone() {
+      this.isLoading = true;
+      this.errorMsg = "";
+      try {
+        let res = await this.$store.dispatch("auth/registerUserWithPhone", {
+          username: this.username,
+          phone: this.phone,
+          password: this.password,
+          verifier:window.recaptchaVerifier
+        });
+
+        this.resetFormData();
+        this.$router.push("/");
+      } catch (err) {
+        this.isLoading = false;
+        this.errorMsg = err.message;
+        if (err.message) this.errorMsg = err.message;
+        else
+          this.$store.commit("handleFirebaseError", {
+            error: err,
+            from: "register : registerWithPhone()",
           });
       }
     },
